@@ -3,6 +3,7 @@ import { Fraunces, Inter, JetBrains_Mono } from 'next/font/google'
 import { ThemeProvider } from '@/components/providers/theme-provider'
 import { SWRProvider } from '@/components/providers/swr-provider'
 import { ToastProvider } from '@/components/providers/toast-provider'
+import { SmallScreenGate } from '@/components/shell/small-screen-gate'
 import './globals.css'
 
 /* ─── Type system — declared once here, swap families in this single place ────
@@ -63,6 +64,9 @@ export default function RootLayout({
             <ToastProvider>{children}</ToastProvider>
           </SWRProvider>
         </ThemeProvider>
+        {/* Below 1024px the dashboard covers itself with an "open on a bigger
+            screen" gate (pure CSS, so desktop pays no cost). */}
+        <SmallScreenGate />
       </body>
     </html>
   )
