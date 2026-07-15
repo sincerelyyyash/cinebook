@@ -1,0 +1,37 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: cinebook-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: cinebook
+      POSTGRES_PASSWORD: cinebook
+      POSTGRES_DB: cinebook
+    ports:
+      - "5432:5432"
+    volumes:
+      - cinebook-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cinebook -d cinebook"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: cinebook-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - cinebook-redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  cinebook-pgdata:
+  cinebook-redisdata:

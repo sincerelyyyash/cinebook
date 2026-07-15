@@ -1,0 +1,45 @@
+# ─────────────────────────────────────────────────────────────
+# Root .gitignore (monorepo). Each sub-project (backend/, frontend/,
+# mobile/) also ships its own .gitignore; git honours all of them.
+# This file covers repo-level and cross-cutting items.
+# ─────────────────────────────────────────────────────────────
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# Assignment source documents (reference material, not part of the deliverable)
+Assignment - Offlyn.docx
+Assignment - Offlyn.pdf
+*.docx
+*.pdf
+
+# Secrets / environment (belt-and-suspenders; sub-projects also ignore these)
+.env
+.env.*
+!.env.example
+
+# Dependencies / build output (safety net across the monorepo)
+node_modules/
+dist/
+.next/
+out/
+*.log
+
+# Flutter/Dart (mobile) — build artifacts + generated code
+.dart_tool/
+**/*.freezed.dart
+**/*.g.dart
+
+# Flutter platform runners — regenerated once via `flutter create .`
+# (see mobile/README.md); not committed.
+mobile/android/
+mobile/ios/
+mobile/linux/
+mobile/macos/
+mobile/windows/
+mobile/web/
+mobile/build/

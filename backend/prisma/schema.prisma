@@ -1,0 +1,413 @@
+// CineBook — Prisma schema
+// Auth models (User/Session/Account/Verification) are Better Auth-compatible.
+// Domain fields + relations hang off User. Money is stored as integer paise.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Enums
+// ─────────────────────────────────────────────────────────────
+enum Role {
+  CUSTOMER
+  HALL_MANAGER
+  ADMIN
+}
+
+enum AgeRating {
+  U
+  UA
+  A
+}
+
+enum Format {
+  TWO_D
+  THREE_D
+}
+
+enum ScreenType {
+  STANDARD
+  IMAX
+  FOURDX
+  DOLBY_ATMOS
+}
+
+enum SeatCategory {
+  FRONT_ROW
+  STANDARD
+  PREMIUM
+  RECLINER
+}
+
+enum ShowStatus {
+  SCHEDULED
+  CANCELLED
+  COMPLETED
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  EXPIRED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  INITIATED
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+}
+
+enum HoldStatus {
+  ACTIVE
+  CONVERTED
+  RELEASED
+  EXPIRED
+}
+
+// ─────────────────────────────────────────────────────────────
+// Auth (Better Auth compatible) + domain extensions
+// ─────────────────────────────────────────────────────────────
+model User {
+  id            String   @id @default(cuid())
+  name          String
+  email         String   @unique
+  emailVerified Boolean  @default(false)
+  image         String?
+
+  // Better Auth phoneNumber plugin fields
+  phoneNumber         String?  @unique
+  phoneNumberVerified Boolean  @default(false)
+
+  // Domain fields (Better Auth "additional fields")
+  role        Role    @default(CUSTOMER)
+  isActive    Boolean @default(true)
+  preferences Json? // { languages: [], genres: [], seatCategory, city } — chatbot memory
+
+  // Auth relations
+  sessions Session[]
+  accounts Account[]
+
+  // Domain relations
+  managedScreens Screen[]       @relation("ScreenManager")
+  bookings       Booking[]
+  seatHolds      SeatHold[]
+  conversations  Conversation[]
+  activityLogs   ActivityLog[]  @relation("ActorLogs")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([role])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountId             String
+  providerId            String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Catalog
+// ─────────────────────────────────────────────────────────────
+model Genre {
+  id     String       @id @default(cuid())
+  name   String       @unique
+  movies MovieGenre[]
+}
+
+model Movie {
+  id          String       @id @default(cuid())
+  title       String
+  description String
+  runtimeMin  Int
+  releaseDate DateTime
+  language    String
+  ageRating   AgeRating
+  posterUrl   String?
+  trailerUrl  String?
+  cast        Json // [{ name, role, photoUrl }]
+  isTrending  Boolean      @default(false)
+  genres      MovieGenre[]
+  shows       Show[]
+  reviews     Review[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([releaseDate])
+  @@index([language])
+  @@index([ageRating])
+}
+
+model MovieGenre {
+  movieId String
+  genreId String
+  movie   Movie  @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  genre   Genre  @relation(fields: [genreId], references: [id], onDelete: Cascade)
+
+  @@id([movieId, genreId])
+  @@index([genreId])
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  movieId   String
+  movie     Movie    @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  author    String
+  rating    Int // 1..5
+  comment   String
+  createdAt DateTime @default(now())
+
+  @@index([movieId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Venue
+// ─────────────────────────────────────────────────────────────
+model Theatre {
+  id      String   @id @default(cuid())
+  chain   String // PVR, INOX, Cinepolis
+  name    String
+  city    String
+  address String
+  lat     Float?
+  lng     Float?
+  screens Screen[]
+
+  @@index([city])
+  @@index([chain])
+}
+
+model Screen {
+  id         String     @id @default(cuid())
+  theatreId  String
+  theatre    Theatre    @relation(fields: [theatreId], references: [id], onDelete: Cascade)
+  name       String // "Screen 1"
+  screenType ScreenType
+  equipment  Json // ["DOLBY_ATMOS","4K_PROJECTION"]
+  managerId  String?
+  manager    User?      @relation("ScreenManager", fields: [managerId], references: [id])
+  seats      Seat[]
+  shows      Show[]
+
+  @@index([theatreId])
+  @@index([managerId])
+}
+
+model Seat {
+  id       String       @id @default(cuid())
+  screenId String
+  screen   Screen       @relation(fields: [screenId], references: [id], onDelete: Cascade)
+  row      String // "A".."J"
+  number   Int
+  category SeatCategory
+
+  bookedSeats BookedSeat[]
+
+  @@unique([screenId, row, number])
+  @@index([screenId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Scheduling
+// ─────────────────────────────────────────────────────────────
+model Show {
+  id        String     @id @default(cuid())
+  movieId   String
+  movie     Movie      @relation(fields: [movieId], references: [id])
+  screenId  String
+  screen    Screen     @relation(fields: [screenId], references: [id])
+  startsAt  DateTime
+  endsAt    DateTime // startsAt + runtime (cleaning buffer handled by scheduling engine)
+  format    Format
+  basePrice Int // paise; category multipliers applied per seat
+  status    ShowStatus @default(SCHEDULED)
+  bookings  Booking[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([screenId, startsAt])
+  @@index([movieId, startsAt])
+  @@index([status])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Booking
+// ─────────────────────────────────────────────────────────────
+model Booking {
+  id        String        @id @default(cuid())
+  code      String        @unique // human-facing booking ID, e.g. CB-8F3K2Q
+  userId    String
+  user      User          @relation(fields: [userId], references: [id])
+  showId    String
+  show      Show          @relation(fields: [showId], references: [id])
+  status    BookingStatus @default(PENDING)
+  subtotal  Int
+  discount  Int           @default(0)
+  total     Int
+  promoCode String?
+  holdId    String?       @unique // the SeatHold this booking was created from
+  hold      SeatHold?     @relation(fields: [holdId], references: [id])
+  expiresAt DateTime? // PENDING bookings expire with their hold if unpaid
+  seats     BookedSeat[]
+  payment   Payment?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([userId])
+  @@index([showId])
+  @@index([status])
+}
+
+model BookedSeat {
+  id        String  @id @default(cuid())
+  bookingId String
+  booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  seatId    String
+  seat      Seat    @relation(fields: [seatId], references: [id])
+  showId    String // denormalized for the double-booking guard
+  pricePaid Int
+
+  @@unique([showId, seatId]) // DB-level double-booking guard
+  @@index([bookingId])
+}
+
+model SeatHold {
+  id        String     @id @default(cuid())
+  showId    String
+  seatIds   String[]
+  userId    String
+  user      User       @relation(fields: [userId], references: [id])
+  status    HoldStatus @default(ACTIVE)
+  expiresAt DateTime
+  booking   Booking?
+  createdAt DateTime   @default(now())
+
+  @@index([showId])
+  @@index([userId])
+  @@index([status])
+}
+
+model Payment {
+  id            String        @id @default(cuid())
+  bookingId     String        @unique
+  booking       Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  amount        Int
+  status        PaymentStatus @default(INITIATED)
+  transactionId String        @unique
+  cardLast4     String?
+  failureReason String?
+  refundedAt    DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model Promo {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  description String
+  percentOff  Int?
+  flatOff     Int? // paise
+  maxDiscount Int? // paise cap for percentage promos
+  minAmount   Int? // paise minimum order
+  validFrom   DateTime
+  validTo     DateTime
+  usageLimit  Int?
+  usedCount   Int      @default(0)
+  isActive    Boolean  @default(true)
+}
+
+// ─────────────────────────────────────────────────────────────
+// AI chatbot
+// ─────────────────────────────────────────────────────────────
+model Conversation {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String?
+  summary   String? // rolling compaction of older turns
+  messages  Message[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           String // user | assistant | tool
+  content        Json // text and/or tool_use / tool_result blocks
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Observability
+// ─────────────────────────────────────────────────────────────
+model ActivityLog {
+  id         String   @id @default(cuid())
+  traceId    String?
+  actorId    String?
+  actor      User?    @relation("ActorLogs", fields: [actorId], references: [id])
+  actorRole  String?
+  action     String // e.g. "show.create", "chatbot.tool.hold_seats"
+  target     String?
+  metadata   Json?
+  success    Boolean
+  durationMs Int?
+  createdAt  DateTime @default(now())
+
+  @@index([actorId])
+  @@index([action])
+  @@index([createdAt])
+}
