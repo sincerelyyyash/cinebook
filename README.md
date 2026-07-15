@@ -175,11 +175,4 @@ Both clients render this. The web app has a `/chat` page plus an "Ask AI" storef
 
 The backend ships an automated suite (`cd backend && bun test`, with Postgres + Redis up): 37 tests across **unit** (circuit breaker, retry/backoff, scheduling rules, seat pricing, promo math, seat-layout generator, agent loop) and **integration** (the full booking flow including contention and auto-expiry, the scheduling rule engine, and the chatbot end-to-end via a scripted provider). `backend/scripts/chat-e2e.ts` exercises the whole agent pipeline against real services. The web and mobile apps each carry their own checks (`bun run typecheck` and `flutter test`).
 
----
 
-## 8. Submission notes
-
-- **Deadline:** 36 hours from receipt (per the assignment).
-- **Preferred stack, Flutter:** delivered as the customer mobile app (`mobile/`); the web app covers the manager and admin surfaces a phone app is not meant for.
-- The assignment document specifies **no submission channel** (no repo URL, email, or portal), so follow whatever instructions accompanied the assignment email.
-</content>
