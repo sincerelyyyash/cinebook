@@ -4,7 +4,8 @@ import { motion } from 'framer-motion'
 import { Sparkle } from '@phosphor-icons/react/ssr'
 import { cn } from '@/lib/design/cn'
 import { Markdown } from './markdown'
-import { ToolChip, type ToolActivity } from './tool-chip'
+import { ToolTrace } from './tool-trace'
+import type { ToolActivity } from './tool-chip'
 
 export interface ChatMsg {
   id: string
@@ -44,13 +45,7 @@ export function ChatMessage({ message }: { message: ChatMsg }) {
         <Sparkle size={14} />
       </span>
       <div className="min-w-0 flex-1 flex flex-col gap-2 pt-0.5">
-        {hasTools && (
-          <div className="flex flex-wrap gap-1.5">
-            {message.tools!.map((t) => (
-              <ToolChip key={t.id} activity={t} />
-            ))}
-          </div>
-        )}
+        {hasTools && <ToolTrace tools={message.tools!} streaming={message.streaming} />}
         {message.text ? (
           <div className="text-ink">
             <Markdown content={message.text} id={message.id} />

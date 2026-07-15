@@ -36,7 +36,6 @@ dependencies:
   # Utils
   intl: ^0.19.0
   collection: ^1.18.0
-  phosphor_flutter: ^2.1.0
 
 dev_dependencies:
   flutter_test:
@@ -50,3 +49,14 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  fonts:
+    - family: PhosphorRegular
+      fonts:
+        - asset: assets/fonts/Phosphor-Regular.ttf
+    - family: PhosphorFill
+      fonts:
+        - asset: assets/fonts/Phosphor-Fill.ttf
+    - family: PhosphorBold
+      fonts:
+        - asset: assets/fonts/Phosphor-Bold.ttf

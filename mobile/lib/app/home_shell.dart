@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:cinebook/core/theme/app_icons.dart';
 
 import '../core/ui/haptics.dart';
 import '../features/bookings/presentation/bookings_screen.dart';

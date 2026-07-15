@@ -1,6 +1,6 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:cinebook/core/theme/app_icons.dart';
 
 import '../../../../core/domain/enums.dart';
 import '../../../../core/theme/app_colors.dart';
